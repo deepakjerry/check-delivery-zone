@@ -1,0 +1,362 @@
+/* Check Delivery Zone Plugin Styles */
+
+.cdz-admin-page {
+	max-width: 1200px;
+	margin: 0 auto;
+	padding: 20px;
+}
+
+.cdz-header {
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	color: #000;
+	padding: 35px 40px;
+	border-radius: 12px;
+	margin-bottom: 30px;
+	box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);
+	position: relative;
+	overflow: hidden;
+}
+
+.cdz-header::before {
+	content: "";
+	position: absolute;
+	top: -50%;
+	right: -50%;
+	width: 200%;
+	height: 200%;
+	background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+	pointer-events: none;
+}
+
+.cdz-header h1 {
+	color: white;
+	margin: 0;
+	font-size: 32px;
+	font-weight: 700;
+	position: relative;
+	z-index: 1;
+}
+
+.cdz-header p {
+	margin: 12px 0 0 0;
+	opacity: 0.95;
+	font-size: 16px;
+	position: relative;
+	z-index: 1;
+}
+
+.cdz-country-notice {
+	background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+	border-left: 5px solid #ffc107;
+	border-radius: 8px;
+	padding: 18px 25px;
+	margin-bottom: 25px;
+	box-shadow: 0 4px 12px rgba(255, 193, 7, 0.15);
+	max-width: 800px;
+}
+
+.cdz-country-notice p {
+	margin: 0;
+	color: #856404;
+	font-size: 15px;
+	line-height: 1.7;
+}
+
+.cdz-country-notice p strong {
+	color: #856404;
+	font-weight: 700;
+}
+
+.cdz-country-notice a {
+	text-decoration: none;
+	transition: all 0.2s ease;
+}
+
+.cdz-country-notice a:hover {
+	text-decoration: underline;
+}
+
+.cdz-card {
+	box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+	border-radius: 12px;
+	transition: all 0.3s ease;
+	margin-bottom: 20px;
+	overflow: hidden;
+}
+
+.cdz-card:hover {
+	box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+	transform: translateY(-2px);
+}
+
+.cdz-form-card {
+	background: linear-gradient(to bottom, #ffffff 0%, #f8f9fa 100%);
+	padding: 30px;
+	border-left: 5px solid #667eea;
+	border-top: 1px solid #e9ecef;
+}
+
+.cdz-social-footer {
+	background: #fff;
+	border-top: 2px solid #f0f0f0;
+	padding: 20px 25px;
+	margin-top: 30px;
+	text-align: center;
+	max-width: 800px;
+}
+
+.cdz-social-footer h3 {
+	margin: 0 0 15px 0;
+	color: #666;
+	font-size: 14px;
+	font-weight: 500;
+}
+
+.cdz-social-links {
+	display: flex;
+	justify-content: center;
+	gap: 10px;
+	flex-wrap: wrap;
+	margin-bottom: 10px;
+}
+
+.cdz-social-links a {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 40px;
+	height: 40px;
+	background: #f8f9fa;
+	color: #333;
+	text-decoration: none;
+	border-radius: 50%;
+	box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+	transition: all 0.3s ease;
+	font-size: 0;
+}
+
+.cdz-social-links a:hover {
+	transform: translateY(-3px) scale(1.1);
+	box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.cdz-social-links a.medium {
+	background: #00ab6c;
+	color: white;
+}
+
+.cdz-social-links a.medium:hover {
+	background: #008f58;
+}
+
+.cdz-social-links a.wordpress {
+	background: #21759b;
+	color: white;
+}
+
+.cdz-social-links a.wordpress:hover {
+	background: #1a5a7a;
+}
+
+.cdz-social-links a.instagram {
+	background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+	color: white;
+}
+
+.cdz-social-links a.instagram:hover {
+	opacity: 0.9;
+}
+
+.cdz-social-links a.facebook {
+	background: #1877f2;
+	color: white;
+}
+
+.cdz-social-links a.facebook:hover {
+	background: #1565c0;
+}
+
+.cdz-social-links a.linkedin {
+	background: #0077b5;
+	color: white;
+}
+
+.cdz-social-links a.linkedin:hover {
+	background: #005885;
+}
+
+.cdz-social-links a.email {
+	background: #ea4335;
+	color: white;
+}
+
+.cdz-social-links a.email:hover {
+	background: #c5221f;
+}
+
+.cdz-social-links a i {
+	font-size: 18px;
+}
+
+.cdz-social-footer p {
+	margin: 12px 0 0 0;
+	color: #999;
+	font-size: 12px;
+}
+
+.cdz-card h2 {
+	color: #2c3e50;
+	font-size: 24px;
+	margin-top: 0;
+	margin-bottom: 25px;
+	border-bottom: 3px solid #e9ecef;
+	padding-bottom: 15px;
+	font-weight: 600;
+}
+
+.cdz-info-card {
+	background: linear-gradient(to bottom, #f8f9fa 0%, #ffffff 100%);
+	border-left: 5px solid #17a2b8;
+	padding: 35px;
+}
+
+.cdz-info-card h3 {
+	color: #2c3e50;
+	font-size: 18px;
+	margin-top: 25px;
+	margin-bottom: 10px;
+	font-weight: 600;
+}
+
+.cdz-info-card h3:first-child {
+	margin-top: 0;
+}
+
+.cdz-info-card ul, .cdz-info-card ol {
+	margin: 15px 0;
+}
+
+.cdz-info-card li {
+	margin: 8px 0;
+	line-height: 1.6;
+}
+
+pre {
+	background: #2c3e50;
+	color: #000;
+	border: 1px solid #34495e;
+	border-radius: 6px;
+	padding: 15px;
+	overflow-x: auto;
+	font-size: 13px;
+	line-height: 1.5;
+}
+
+.form-table th {
+	font-weight: 600;
+	color: #2c3e50;
+	padding: 15px 10px 15px 0;
+}
+
+.form-table td {
+	padding: 15px 10px;
+}
+
+.form-table input[type="text"],
+.form-table input[type="file"],
+.form-table select {
+	border-radius: 6px;
+	border: 2px solid #e9ecef;
+	padding: 10px 15px;
+	font-size: 14px;
+	transition: all 0.3s ease;
+}
+
+.form-table input[type="text"]:focus,
+.form-table input[type="file"]:focus,
+.form-table select:focus {
+	border-color: #667eea;
+	box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+	outline: none;
+}
+
+.button-primary {
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	border: none;
+	border-radius: 6px;
+	padding: 12px 30px;
+	font-size: 15px;
+	font-weight: 600;
+	box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+	transition: all 0.3s ease;
+}
+
+.button-primary:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+.notice.notice-success.is-dismissible p {
+    color: #000 !important;
+    margin-top: 1px;
+}
+
+.description {
+	color: #6c757d;
+	font-style: italic;
+	margin-top: 8px;
+}
+
+.notice {
+	border-radius: 8px;
+	border-left-width: 4px;
+	padding: 12px 15px;
+	margin: 20px 0;
+}
+
+.notice p {
+	color: #23282d !important;
+	font-size: 14px;
+	line-height: 1.6;
+	margin: 0;
+}
+
+.notice-success {
+	background-color: #f0f6f0 !important;
+	border-left-color: #46b450 !important;
+}
+
+.notice-success p {
+	color: #155724 !important;
+}
+
+.notice-success p strong {
+	color: #155724 !important;
+	font-weight: 600;
+}
+
+.notice-warning {
+	background-color: #fff8e5 !important;
+	border-left-color: #ffb900 !important;
+}
+
+.notice-warning p {
+	color: #856404 !important;
+}
+
+.notice-error {
+	background-color: #ffeaea !important;
+	border-left-color: #dc3232 !important;
+}
+
+.notice-error p {
+	color: #721c24 !important;
+}
+
+.notice-info {
+	background-color: #e5f5fa !important;
+	border-left-color: #00a0d2 !important;
+}
+
+.notice-info p {
+	color: #005177 !important;
+}
