@@ -7,12 +7,12 @@ Author: Deepak Jerry
 Author URI: https://deepakjerry.com
 License: GPL-2.0+
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
-Text Domain: check delivery zone
+Text Domain: check-delivery-zone
 Domain Path: /languages
 Requires at least: 5.0
 Requires PHP: 7.2
 WC requires at least: 4.0
-WC tested up to: 10.3
+WC tested up to: 10.4
 
 
 */
@@ -20,14 +20,50 @@ WC tested up to: 10.3
 if ( ! defined( 'ABSPATH' ) ) exit;
 
 /**
+ * Check if WooCommerce is active
+ */
+function cdz_check_woocommerce_active() {
+	if ( ! class_exists( 'WooCommerce' ) ) {
+		add_action( 'admin_notices', 'cdz_woocommerce_missing_notice' );
+		return false;
+	}
+	return true;
+}
+
+/**
+ * Display admin notice if WooCommerce is not active
+ */
+function cdz_woocommerce_missing_notice() {
+	?>
+	<div class="notice notice-error">
+		<p><strong>Check Delivery Zone</strong> requires WooCommerce to be installed and active. Please <a href="<?php echo esc_url( admin_url( 'plugin-install.php?s=woocommerce&tab=search&type=term' ) ); ?>">install WooCommerce</a> to use this plugin.</p>
+	</div>
+	<?php
+}
+
+/**
+ * Declare WooCommerce compatibility
+ */
+add_action( 'before_woocommerce_init', function() {
+	if ( class_exists( '\Automattic\WooCommerce\Utilities\FeaturesUtil' ) ) {
+		\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', __FILE__, true );
+		\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'cart_checkout_blocks', __FILE__, true );
+	}
+} );
+
+// Check WooCommerce on init
+add_action( 'plugins_loaded', 'cdz_check_woocommerce_active' );
+
+/**
  * Add action links to plugin page
  */
 add_filter('plugin_action_links_' . plugin_basename(__FILE__), 'cdz_add_action_links');
 
 function cdz_add_action_links($links) {
-	$settings_link = '<a href="' . admin_url('admin.php?page=check-delivery-zone-import') . '">Settings</a>';
+	$settings_link = '<a href="' . esc_url( admin_url('admin.php?page=check-delivery-zone-import') ) . '">Settings</a>';
 	$support_link = '<a href="mailto:deepakjerry123@gmail.com" style="color: #ea4335; font-weight: 600;">Contact Support</a>';
-	array_unshift($links, $settings_link, $support_link);
+	$coffee_link = '<a href="https://buymeacoffee.com/deepakjerry" target="_blank" rel="noopener noreferrer" style="color: #ff813f; font-weight: 600;">☕ Buy Me a Coffee</a>';
+	array_unshift($links, $settings_link, $coffee_link, $support_link);
 	return $links;
 }
 
@@ -43,7 +79,8 @@ function cdz_add_row_meta($links, $file) {
 	
 	$row_meta = [
 		'support' => '<a href="mailto:deepakjerry123@gmail.com" style="color: #ea4335;">Contact Support</a>',
-		'docs' => '<a href="' . admin_url('admin.php?page=check-delivery-zone-import') . '">Documentation</a>',
+		'coffee' => '<a href="https://buymeacoffee.com/deepakjerry" target="_blank" rel="noopener noreferrer" style="color: #ff813f;">☕ Buy Me a Coffee</a>',
+		'docs' => '<a href="' . esc_url( admin_url('admin.php?page=check-delivery-zone-import') ) . '">Documentation</a>',
 	];
 	
 	return array_merge($links, $row_meta);
@@ -100,6 +137,9 @@ function cdz_delivery_checker_shortcode($atts) {
  * Add pincode field on product detail page (uses shortcode)
  */
 add_action('woocommerce_after_add_to_cart_form', function() {
+	if ( ! class_exists( 'WooCommerce' ) ) {
+		return;
+	}
     echo do_shortcode('[check_delivery_zone]');
 }, 10);
 
@@ -112,7 +152,11 @@ add_action('wp_ajax_nopriv_check_delivery_zone', 'cdz_check_delivery_zone');
 function cdz_check_delivery_zone() {
     check_ajax_referer('cdz_nonce', 'security');
 
-    $postcode = sanitize_text_field($_POST['pincode'] ?? '');
+	if ( ! class_exists( 'WooCommerce' ) ) {
+		wp_send_json_error('WooCommerce is not installed or active.');
+	}
+
+    $postcode = sanitize_text_field( wp_unslash( $_POST['pincode'] ?? '' ) );
     if (empty($postcode)) {
         wp_send_json_error('Please enter a valid pincode.');
     }
@@ -389,8 +433,8 @@ function cdz_admin_page_content() {
 		wp_die('You do not have permission to access this page.');
 	}
 	
-	// Enqueue Font Awesome
-	wp_enqueue_style('font-awesome', 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css', [], '6.4.0');
+	// Note: Font Awesome removed for WordPress.org compliance (external resources not allowed)
+	// You can add Font Awesome via a local file if needed
 	
 	// Handle CSV upload
 	$message = '';
@@ -417,8 +461,8 @@ function cdz_admin_page_content() {
 	if (isset($_POST['cdz_add_manual']) && !empty($_POST['manual_pincode']) && !empty($_POST['manual_zone'])) {
 		check_admin_referer('cdz_import_nonce');
 		
-		$manual_pincode = sanitize_text_field($_POST['manual_pincode']);
-		$manual_zone_name = sanitize_text_field($_POST['manual_zone']);
+		$manual_pincode = sanitize_text_field( wp_unslash( $_POST['manual_pincode'] ?? '' ) );
+		$manual_zone_name = sanitize_text_field( wp_unslash( $_POST['manual_zone'] ?? '' ) );
 		
 		// Validate pincode format (6 digits or range format)
 		if (preg_match('/^[0-9]{6}$/', $manual_pincode) || preg_match('/^[0-9]{6}\.\.\.[0-9]{6}$/', $manual_pincode)) {
@@ -449,169 +493,213 @@ function cdz_admin_page_content() {
 	if (isset($_POST['cdz_import_csv']) && isset($_FILES['csv_file']) && !empty($_FILES['csv_file']['tmp_name'])) {
 		check_admin_referer('cdz_import_nonce');
 		
-		$default_zone_name = sanitize_text_field($_POST['default_zone'] ?? '');
+		$default_zone_name = sanitize_text_field( wp_unslash( $_POST['default_zone'] ?? '' ) );
 		if (empty($default_zone_name)) {
 			$message = 'Please select a zone for the pincodes.';
 			$message_type = 'error';
 		} else {
-			$file = $_FILES['csv_file'];
-			if ($file['type'] !== 'text/csv' && $file['type'] !== 'application/vnd.ms-excel' && !preg_match('/\.csv$/i', $file['name'])) {
+			// Validate and sanitize $_FILES array - check is already done in line 493, but sanitize here
+			// Sanitize tmp_name immediately when retrieving
+			$tmp_name_raw = isset( $_FILES['csv_file']['tmp_name'] ) ? sanitize_text_field( wp_unslash( $_FILES['csv_file']['tmp_name'] ) ) : '';
+			if ( ! isset( $_FILES['csv_file'] ) || empty( $tmp_name_raw ) ) {
 				$message = 'Please upload a valid CSV file.';
 				$message_type = 'error';
-					} else {
-						$handle = fopen($file['tmp_name'], 'r');
-						if ($handle !== false) {
-							$imported = 0;
-							$skipped = 0;
-							$errors = [];
-							$line_num = 0;
-							$total_lines = 0;
+			} else {
+				// Sanitize $_FILES array elements
+				// For is_uploaded_file validation, we need the original unsanitized path
+				// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- is_uploaded_file() requires original path
+				$tmp_name_for_validation = isset( $_FILES['csv_file']['tmp_name'] ) ? $_FILES['csv_file']['tmp_name'] : '';
+				$tmp_name_sanitized = '';
+				// Validate it's an uploaded file (must use original path for is_uploaded_file check)
+				if ( ! empty( $tmp_name_for_validation ) && is_uploaded_file( $tmp_name_for_validation ) ) {
+					// Use the already sanitized version
+					$tmp_name_sanitized = $tmp_name_raw;
+				}
+				
+				$file = array(
+					'name'     => isset( $_FILES['csv_file']['name'] ) ? sanitize_file_name( $_FILES['csv_file']['name'] ) : '',
+					'type'     => isset( $_FILES['csv_file']['type'] ) ? sanitize_mime_type( $_FILES['csv_file']['type'] ) : '',
+					'tmp_name' => $tmp_name_sanitized,
+				);
+				
+				$file_name = $file['name'];
+				$file_type = $file['type'];
+				$file_tmp = $file['tmp_name'];
+				
+				if ( empty( $file_tmp ) ) {
+					$message = 'Please upload a valid CSV file.';
+					$message_type = 'error';
+				} elseif ( $file_type !== 'text/csv' && $file_type !== 'application/vnd.ms-excel' && ! preg_match( '/\.csv$/i', $file_name ) ) {
+					$message = 'Please upload a valid CSV file.';
+					$message_type = 'error';
+				} else {
+					// Use WP_Filesystem
+					global $wp_filesystem;
+					if ( empty( $wp_filesystem ) ) {
+						require_once ABSPATH . '/wp-admin/includes/file.php';
+						WP_Filesystem();
+					}
+					
+					if ( $wp_filesystem && $wp_filesystem->exists( $file_tmp ) ) {
+						$file_content = $wp_filesystem->get_contents( $file_tmp );
+						$lines = explode( "\n", $file_content );
+						
+						$imported = 0;
+						$skipped = 0;
+						$errors = [];
+						$line_num = 0;
+						$total_lines = count( $lines );
+						
+						// Find or create zone once
+						$zone = cdz_find_or_create_zone($default_zone_name);
+						if (!$zone) {
+							$message = "Could not find or create zone '$default_zone_name'. Please check the zone name.";
+							$message_type = 'error';
+						} else {
+							// Collect all pincodes first (for grouping into ranges)
+							$pincodes = [];
+							$is_first_line = true;
 							
-							// Find or create zone once
-							$zone = cdz_find_or_create_zone($default_zone_name);
-							if (!$zone) {
-								$message = "Could not find or create zone '$default_zone_name'. Please check the zone name.";
-								$message_type = 'error';
-							} else {
-								// Collect all pincodes first (for grouping into ranges)
-								$pincodes = [];
-								$is_first_line = true;
+							foreach ( $lines as $line ) {
+								$line = trim( $line );
+								if ( empty( $line ) ) {
+									continue;
+								}
 								
-								while (($data = fgetcsv($handle, 1000, ',')) !== false) {
-									$line_num++;
-									$total_lines++;
-									
-									$pincode = trim($data[0] ?? '');
-									
-									// Skip empty rows
-									if (empty($pincode)) {
+								$line_num++;
+								// Parse CSV line manually
+								$data = str_getcsv( $line, ',' );
+								
+								$pincode = trim($data[0] ?? '');
+								
+								// Skip empty rows
+								if (empty($pincode)) {
+									continue;
+								}
+								
+								// Check if first row is header (contains non-numeric text like "pincode", "pin", etc.)
+								if ($is_first_line) {
+									$is_first_line = false;
+									if (preg_match('/pincode|pin|postcode|zip|code/i', $pincode)) {
+										// It's a header, skip it
 										continue;
 									}
-									
-									// Check if first row is header (contains non-numeric text like "pincode", "pin", etc.)
-									if ($is_first_line) {
-										$is_first_line = false;
-										if (preg_match('/pincode|pin|postcode|zip|code/i', $pincode)) {
-											// It's a header, skip it
-											continue;
-										}
-									}
-									
-									// Support both single column (just pincode) and two columns (pincode, zone)
-									if (count($data) >= 2 && !empty(trim($data[1] ?? ''))) {
-										// Two column format: pincode, zone
-										$zone_name = trim($data[1]);
-										$temp_zone = cdz_find_or_create_zone($zone_name);
-										if ($temp_zone) {
-											if (preg_match('/^[0-9]{6}$/', $pincode)) {
-												$result = cdz_add_postcode_to_zone($temp_zone, $pincode);
-												if ($result === true) {
-													$imported++;
-												} elseif ($result !== 'duplicate') {
-													$skipped++;
-												}
-											} else {
+								}
+								
+								// Support both single column (just pincode) and two columns (pincode, zone)
+								if (count($data) >= 2 && !empty(trim($data[1] ?? ''))) {
+									// Two column format: pincode, zone
+									$zone_name = trim($data[1]);
+									$temp_zone = cdz_find_or_create_zone($zone_name);
+									if ($temp_zone) {
+										if (preg_match('/^[0-9]{6}$/', $pincode)) {
+											$result = cdz_add_postcode_to_zone($temp_zone, $pincode);
+											if ($result === true) {
+												$imported++;
+											} elseif ($result !== 'duplicate') {
 												$skipped++;
 											}
 										} else {
 											$skipped++;
 										}
 									} else {
-										// Single column format: just pincode
-										// Accept both 6-digit pincodes and longer numbers (take first 6 digits)
-										$pincode_clean = preg_replace('/[^0-9]/', '', $pincode);
-										if (strlen($pincode_clean) >= 6) {
-											$pincode_6 = substr($pincode_clean, 0, 6);
-											if (preg_match('/^[0-9]{6}$/', $pincode_6)) {
-												$pincodes[] = $pincode_6;
-											}
+										$skipped++;
+									}
+								} else {
+									// Single column format: just pincode
+									// Accept both 6-digit pincodes and longer numbers (take first 6 digits)
+									$pincode_clean = preg_replace('/[^0-9]/', '', $pincode);
+									if (strlen($pincode_clean) >= 6) {
+										$pincode_6 = substr($pincode_clean, 0, 6);
+										if (preg_match('/^[0-9]{6}$/', $pincode_6)) {
+											$pincodes[] = $pincode_6;
 										}
 									}
 								}
+							}
+							
+							// Process single-column pincodes (group into ranges for efficiency)
+							if (!empty($pincodes)) {
+								// Remove duplicates and sort
+								$pincodes = array_unique($pincodes);
+								sort($pincodes, SORT_NUMERIC);
 								
-								// Process single-column pincodes (group into ranges for efficiency)
-								if (!empty($pincodes)) {
-									// Remove duplicates and sort
-									$pincodes = array_unique($pincodes);
-									sort($pincodes, SORT_NUMERIC);
+								$batch = [];
+								$prev = null;
+								
+								foreach ($pincodes as $pincode) {
+									$pincode_int = intval($pincode);
 									
-									$batch = [];
-									$prev = null;
+									// Limit range size to 999 pincodes to avoid issues
+									$max_range_size = 999;
 									
-									foreach ($pincodes as $pincode) {
-										$pincode_int = intval($pincode);
-										
-										// Limit range size to 999 pincodes to avoid issues
-										$max_range_size = 999;
-										
-										if ($prev === null || $pincode_int - $prev > 1 || count($batch) >= $max_range_size) {
-											// Save previous batch
-											if (!empty($batch)) {
-												if (count($batch) == 1) {
-													$result = cdz_add_postcode_to_zone($zone, $batch[0]);
-												} else {
-													$range_str = $batch[0] . '...' . end($batch);
-													$result = cdz_add_postcode_to_zone($zone, $range_str);
-												}
-												if ($result === true) {
-													$imported += count($batch);
-												} elseif ($result === 'duplicate') {
-													// Don't count duplicates as skipped
-												} else {
-													// If batch save fails, try saving individually
-													foreach ($batch as $single_pincode) {
-														$result_single = cdz_add_postcode_to_zone($zone, $single_pincode);
-														if ($result_single === true) {
-															$imported++;
-														} elseif ($result_single !== 'duplicate') {
-															$skipped++;
-														}
+									if ($prev === null || $pincode_int - $prev > 1 || count($batch) >= $max_range_size) {
+										// Save previous batch
+										if (!empty($batch)) {
+											if (count($batch) == 1) {
+												$result = cdz_add_postcode_to_zone($zone, $batch[0]);
+											} else {
+												$range_str = $batch[0] . '...' . end($batch);
+												$result = cdz_add_postcode_to_zone($zone, $range_str);
+											}
+											if ($result === true) {
+												$imported += count($batch);
+											} elseif ($result === 'duplicate') {
+												// Don't count duplicates as skipped
+											} else {
+												// If batch save fails, try saving individually
+												foreach ($batch as $single_pincode) {
+													$result_single = cdz_add_postcode_to_zone($zone, $single_pincode);
+													if ($result_single === true) {
+														$imported++;
+													} elseif ($result_single !== 'duplicate') {
+														$skipped++;
 													}
 												}
 											}
-											$batch = [$pincode];
-										} else {
-											$batch[] = $pincode;
 										}
-										$prev = $pincode_int;
+										$batch = [$pincode];
+									} else {
+										$batch[] = $pincode;
 									}
-									
-									// Save last batch
-									if (!empty($batch)) {
-										if (count($batch) == 1) {
-											$result = cdz_add_postcode_to_zone($zone, $batch[0]);
-										} else {
-											$range_str = $batch[0] . '...' . end($batch);
-											$result = cdz_add_postcode_to_zone($zone, $range_str);
-										}
-										if ($result === true) {
-											$imported += count($batch);
-										} elseif ($result === 'duplicate') {
-											// Don't count duplicates as skipped
-										} else {
-											// If batch save fails, try saving individually
-											foreach ($batch as $single_pincode) {
-												$result_single = cdz_add_postcode_to_zone($zone, $single_pincode);
-												if ($result_single === true) {
-													$imported++;
-												} elseif ($result_single !== 'duplicate') {
-													$skipped++;
-												}
+									$prev = $pincode_int;
+								}
+								
+								// Save last batch
+								if (!empty($batch)) {
+									if (count($batch) == 1) {
+										$result = cdz_add_postcode_to_zone($zone, $batch[0]);
+									} else {
+										$range_str = $batch[0] . '...' . end($batch);
+										$result = cdz_add_postcode_to_zone($zone, $range_str);
+									}
+									if ($result === true) {
+										$imported += count($batch);
+									} elseif ($result === 'duplicate') {
+										// Don't count duplicates as skipped
+									} else {
+										// If batch save fails, try saving individually
+										foreach ($batch as $single_pincode) {
+											$result_single = cdz_add_postcode_to_zone($zone, $single_pincode);
+											if ($result_single === true) {
+												$imported++;
+											} elseif ($result_single !== 'duplicate') {
+												$skipped++;
 											}
 										}
 									}
 								}
-								
-								fclose($handle);
-								
-								$message = sprintf('Import completed! <strong>%d pincodes imported</strong> to zone "%s" from %d total lines, %d skipped.', $imported, $zone->get_zone_name(), $total_lines, $skipped);
-								$message_type = $imported > 0 ? 'success' : 'warning';
 							}
-						} else {
-							$message = 'Unable to read CSV file.';
-							$message_type = 'error';
+						
+							$message = sprintf('Import completed! <strong>%d pincodes imported</strong> to zone "%s" from %d total lines, %d skipped.', $imported, $zone->get_zone_name(), $total_lines, $skipped);
+							$message_type = $imported > 0 ? 'success' : 'warning';
 						}
+					} else {
+						$message = 'Unable to read CSV file.';
+						$message_type = 'error';
 					}
+				}
+			}
 		}
 	}
 	
@@ -630,7 +718,7 @@ function cdz_admin_page_content() {
 		</div>
 		
 		<div class="cdz-country-notice">
-			<p><strong>🇮🇳 India-Specific Plugin:</strong> This plugin is designed specifically for Indian pincodes (6-digit postal codes). If you are from another country and need support or customization, please <a href="mailto:deepakjerry123@gmail.com" style="color: #667eea; font-weight: 600;">contact us via email</a> for assistance.</p>
+			<p><strong>🇮🇳 India-Specific Plugin:</strong> This plugin is designed specifically for Indian pincodes (6-digit postal codes). If you are from another country and need support or customization, please <a href="mailto:deepakjerry123@gmail.com" style="color: #667eea; font-weight: 600;">contact us via email</a> for assistance. <a href="https://buymeacoffee.com/deepakjerry" target="_blank" rel="noopener noreferrer" style="color: #ff813f; font-weight: 600; margin-left: 10px;">☕ Support this plugin</a></p>
 		</div>
 		
 		<?php if ($message): ?>
@@ -727,7 +815,7 @@ function cdz_admin_page_content() {
 				</ol>
 				
 				<h3>Example CSV Content (Simple Format):</h3>
-				<pre style="background: #000; padding: 15px; border: 1px solid #ddd; overflow-x: auto;">
+				<pre style="background: #ffffff; padding: 15px; border: 1px solid #ddd; overflow-x: auto;">
 110001
 110002
 110003
@@ -739,7 +827,7 @@ function cdz_admin_page_content() {
 				
 				<h3>Alternative Format (with Zone Column):</h3>
 				<p>You can also use a two-column format if you want to assign different zones:</p>
-				<pre style="background: #000; padding: 15px; border: 1px solid #ddd; overflow-x: auto;">
+				<pre style="background: #ffffff; padding: 15px; border: 1px solid #ddd; overflow-x: auto;">
 Pincode,Zone Name
 110001,DELHI
 110002,DELHI
@@ -768,7 +856,7 @@ Pincode,Zone Name
 					</li>
 					<li><strong>Verify Import:</strong>
 						<ul>
-							<li>Go to <a href="<?php echo admin_url('admin.php?page=wc-settings&tab=shipping'); ?>">WooCommerce → Settings → Shipping</a></li>
+							<li>Go to <a href="<?php echo esc_url( admin_url('admin.php?page=wc-settings&tab=shipping') ); ?>">WooCommerce → Settings → Shipping</a></li>
 							<li>Edit the zone you selected to verify the pincodes were added correctly</li>
 							<li>You'll see pincodes grouped as ranges (e.g., 110001...110099) for efficiency</li>
 						</ul>
@@ -798,8 +886,8 @@ Pincode,Zone Name
 				
 				<h3>Quick Links:</h3>
 				<ul>
-					<li><a href="<?php echo admin_url('admin.php?page=wc-settings&tab=shipping'); ?>" target="_blank">Manage Shipping Zones →</a></li>
-					<li><a href="<?php echo admin_url('admin.php?page=wc-settings&tab=shipping&zone_id=new'); ?>" target="_blank">Create New Shipping Zone →</a></li>
+					<li><a href="<?php echo esc_url( admin_url('admin.php?page=wc-settings&tab=shipping') ); ?>" target="_blank">Manage Shipping Zones →</a></li>
+					<li><a href="<?php echo esc_url( admin_url('admin.php?page=wc-settings&tab=shipping&zone_id=new') ); ?>" target="_blank">Create New Shipping Zone →</a></li>
 				</ul>
 			</div>
 		</div>
@@ -808,25 +896,28 @@ Pincode,Zone Name
 			<h3>Developed by Deepak jerry</h3>
 			<div class="cdz-social-links">
 				<a href="https://medium.com/@deepakjerry" target="_blank" rel="noopener noreferrer" class="medium" title="Medium">
-					<i class="fab fa-medium"></i>
+					Medium
 				</a>
 				<a href="https://wordpress.org/support/users/deepakjerry/" target="_blank" rel="noopener noreferrer" class="wordpress" title="WordPress">
-					<i class="fab fa-wordpress"></i>
+					WordPress
 				</a>
 				<a href="https://www.instagram.com/deepakjerry786/" target="_blank" rel="noopener noreferrer" class="instagram" title="Instagram">
-					<i class="fab fa-instagram"></i>
+					Instagram
 				</a>
 				<a href="https://www.facebook.com/deepakjerry78/" target="_blank" rel="noopener noreferrer" class="facebook" title="Facebook">
-					<i class="fab fa-facebook-f"></i>
+					Facebook
 				</a>
 				<a href="https://www.linkedin.com/m/in/deepak-kumar-1aaa06146/" target="_blank" rel="noopener noreferrer" class="linkedin" title="LinkedIn">
-					<i class="fab fa-linkedin-in"></i>
+					LinkedIn
 				</a>
 				<a href="mailto:deepakjerry123@gmail.com" class="email" title="Email Support">
-					<i class="fas fa-envelope"></i>
+					Email
+				</a>
+				<a href="https://buymeacoffee.com/deepakjerry" target="_blank" rel="noopener noreferrer" class="coffee" title="Buy Me a Coffee" style="background: linear-gradient(135deg, #ff813f 0%, #ff6b35 100%); color: #fff; font-weight: 600;">
+					☕ Buy Me a Coffee
 				</a>
 			</div>
-			<p>Plugin developed with ❤️ | For support, email: <a href="mailto:deepakjerry123@gmail.com" style="color: #667eea; text-decoration: none;">deepakjerry123@gmail.com</a></p>
+			<p>Plugin developed with ❤️ | For support, email: <a href="mailto:deepakjerry123@gmail.com" style="color: #667eea; text-decoration: none;">deepakjerry123@gmail.com</a> | <a href="https://buymeacoffee.com/deepakjerry" target="_blank" rel="noopener noreferrer" style="color: #ff813f; text-decoration: none; font-weight: 600;">☕ Buy Me a Coffee</a></p>
 		</div>
 	</div>
 	<?php
